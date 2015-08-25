@@ -1,12 +1,46 @@
-# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: clean coverage doc docserve help inplace install install-req release-test sdist test upload upload-test
-.DEFAULT_GOAL := release-test
+# TOOLS
+GIT = /usr/bin/git
+
+# REVISION INFO
+HOSTNAME := $(shell hostname)
+COMMIT := $(shell $(GIT) rev-parse HEAD)
+REV_HASH := $(shell $(GIT) log --format='%h' -n 1)
+REV_TAGS := $(shell $(GIT) describe --abbrev=0 --tags --always)
+BRANCH := $(shell echo $(GIT_BRANCH)|cut -f2 -d"/")
+PY_VERSION := $(shell cat setup.py | grep PILLOW_VERSION | grep -v version | tr -d ' ' | cut -f2 -d"=" | sed "s/[,\']//g")
+VERSION_JSON = PIL/version.json
+
+all: build
+
+version:
+	@-echo "Building version info in $(VERSION_JSON)"
+	echo "{\n\t\"hash\": \"$(REV_HASH)\"," > $(VERSION_JSON)
+	echo "\t\"version\": \"$(PY_VERSION)\"," >> $(VERSION_JSON)
+	echo "\t\"hostname\": \"$(HOSTNAME)\"," >> $(VERSION_JSON)
+	echo "\t\"commit\": \"$(COMMIT)\"," >> $(VERSION_JSON)
+	echo "\t\"branch\": \"$(BRANCH)\"," >> $(VERSION_JSON)
+	echo "\t\"tags\": \"$(REV_TAGS)\"\n}" >> $(VERSION_JSON)
 
 clean:
+	find . -type f -name "*.py[c|o]" -exec rm -f {} \;
+	find . -type f -name "*.edited" -exec rm -f {} \;
+	find . -type f -name "*.orig" -exec rm -f {} \;
+	find . -type f -name "*.swp" -exec rm -f {} \;
 	python setup.py clean
 	rm PIL/*.so || true
 	rm -r build || true
 	find . -name __pycache__ | xargs rm -r || true
+	rm -f $(VERSION_JSON)
+	rm -rf dist
+
+build: clean version
+	python setup.py sdist
+	python setup.py bdist_wheel
+
+
+# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
+.PHONY: clean coverage doc docserve help inplace install install-req release-test sdist test upload upload-test
+.DEFAULT_GOAL := release-test
 
 coverage: 
 	coverage erase

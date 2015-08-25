@@ -39,6 +39,12 @@ _LIB_IMAGING = (
     "XbmEncode", "ZipDecode", "ZipEncode", "TiffDecode", "Incremental",
     "Jpeg2KDecode", "Jpeg2KEncode", "BoxBlur")
 
+# http://bugs.python.org/issue8876
+try:
+    del os.link
+except:
+    pass
+
 
 def _add_directory(path, dir, where=None):
     if dir is None:
